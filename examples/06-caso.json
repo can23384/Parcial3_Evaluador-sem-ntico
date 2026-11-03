@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "model": {
+    "domain": [
+      "a",
+      "b",
+      "c"
+    ],
+    "symbols": [
+      {
+        "name": "i",
+        "kind": "function",
+        "arity": 0,
+        "entries": [
+          {
+            "args": [],
+            "value": "a"
+          }
+        ]
+      },
+      {
+        "name": "R",
+        "kind": "predicate",
+        "arity": 1,
+        "tuples": [
+          [
+            "b"
+          ],
+          [
+            "c"
+          ]
+        ]
+      },
+      {
+        "name": "Q",
+        "kind": "predicate",
+        "arity": 2,
+        "tuples": [
+          [
+            "a",
+            "a"
+          ],
+          [
+            "a",
+            "b"
+          ],
+          [
+            "a",
+            "c"
+          ],
+          [
+            "b",
+            "c"
+          ],
+          [
+            "c",
+            "c"
+          ]
+        ]
+      }
+    ]
+  },
+  "formula": "(∃y Q(i, y)) ∧ ¬R(i)",
+  "environment": {}
+}

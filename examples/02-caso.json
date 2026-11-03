@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "model": {
+    "domain": [
+      "1",
+      "2",
+      "3"
+    ],
+    "symbols": [
+      {
+        "name": "P",
+        "kind": "predicate",
+        "arity": 1,
+        "tuples": [
+          [
+            "1"
+          ],
+          [
+            "2"
+          ]
+        ]
+      }
+    ]
+  },
+  "formula": "∀x P(x)",
+  "environment": {}
+}

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "model": {
+    "domain": [
+      "0",
+      "1",
+      "2"
+    ],
+    "symbols": [
+      {
+        "name": "P",
+        "kind": "predicate",
+        "arity": 2,
+        "tuples": [
+          [
+            "0",
+            "1"
+          ],
+          [
+            "0",
+            "2"
+          ],
+          [
+            "1",
+            "2"
+          ]
+        ]
+      }
+    ]
+  },
+  "formula": "P(x, y)",
+  "environment": {
+    "x": "0",
+    "y": "2"
+  }
+}

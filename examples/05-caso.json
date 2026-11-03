@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "model": {
+    "domain": [
+      "a",
+      "b"
+    ],
+    "symbols": [
+      {
+        "name": "c",
+        "kind": "function",
+        "arity": 0,
+        "entries": [
+          {
+            "args": [],
+            "value": "a"
+          }
+        ]
+      },
+      {
+        "name": "f",
+        "kind": "function",
+        "arity": 1,
+        "entries": [
+          {
+            "args": [
+              "a"
+            ],
+            "value": "b"
+          },
+          {
+            "args": [
+              "b"
+            ],
+            "value": "a"
+          }
+        ]
+      }
+    ]
+  },
+  "formula": "(∀x (f(f(x)) = x)) ∧ (f(c) ≠ c)",
+  "environment": {}
+}

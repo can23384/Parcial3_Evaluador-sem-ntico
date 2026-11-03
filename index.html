@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Laboratorio de semántica de primer orden: interpreta, evalúa y comprende cada paso.">
+  <title>Semantic Lab · MM3032</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="src/logic.js"></script><script defer src="src/examples.js"></script><script defer src="src/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#main" aria-label="Semantic Lab, inicio"><span class="logo">⊨</span><span>SEMANTIC<span class="brand-light"> / LAB</span><small>LÓGICA DE PRIMER ORDEN</small></span></a>
+    <div class="header-actions"><span class="local"><i></i> LOCAL / OFFLINE</span><button id="helpButton" class="quiet">Guía rápida <span>↗</span></button><button id="exportButton" class="quiet">Exportar ↓</button><button id="importButton" class="quiet">Importar ↑</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+  </header>
+  <main id="main">
+    <section class="intro"><div><p class="eyebrow">MM3032 / LABORATORIO INTERACTIVO</p><h1>La lógica, <em>paso a paso.</em></h1><p>Construye una interpretación. Escribe una fórmula. Comprende el resultado.</p></div><label class="example-picker">CARGAR UN EJEMPLO<select id="exampleSelect" aria-label="Cargar un ejemplo"></select></label></section>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <div class="workspace">
+      <aside class="panel model-panel" aria-label="Configurar interpretación">
+        <div class="panel-heading"><div><span class="section-number">01</span><h2>Interpretación</h2></div><span class="tag">ℐ = ⟨D, C, F, P⟩</span></div>
+        <section class="domain-section"><label class="field-label" for="domainInput">DOMINIO DEL DISCURSO <span>D</span></label><p class="hint">Elementos separados por comas. D no puede estar vacío.</p><div class="input-row"><input id="domainInput" value="1, 2, 3" autocomplete="off" spellcheck="false" aria-describedby="domainHint"><button id="applyDomain" class="small-button">Aplicar</button></div><p id="domainHint" class="hint">Las etiquetas de D no son constantes del lenguaje.</p><div id="domainChips" class="chips"></div></section>
+        <section class="symbols-section"><div class="section-line"><h3>LENGUAJE E INTERPRETACIONES</h3><span id="symbolCount" class="muted"></span></div><p class="hint">Abre un símbolo para editar su tabla.</p><div id="symbolList"></div>
+          <form id="symbolForm" class="add-symbol"><label>Nombre<input id="symbolName" placeholder="p. ej. R" maxlength="40" required autocomplete="off"></label><label>Tipo<select id="symbolKind"><option value="predicate">Predicado</option><option value="function">Función</option></select></label><label class="arity-field">Aridad<input id="symbolArity" type="number" min="0" max="6" value="1" required></label><button class="small-button" type="submit">+ Añadir símbolo</button></form><p class="hint">Una función de aridad 0 representa una constante.</p>
+        </section><div class="model-footer"><span class="status-dot"></span><span id="modelStatus">Interpretación lista</span></div>
+      </aside>
+      <div class="main-column">
+        <section class="panel editor-panel"><div class="panel-heading"><div><span class="section-number">02</span><h2>Fórmula</h2></div><span id="formulaKind" class="tag">ENUNCIADO</span></div>
+          <div class="editor-body"><div class="editor-caption"><span>formula.logic</span><span>UTF-8 · PRIMER ORDEN</span></div><label class="sr-only" for="formulaInput">Fórmula lógica</label><div class="code-editor"><span class="line-number" aria-hidden="true">01</span><textarea id="formulaInput" spellcheck="false" rows="3" placeholder="∀x (∃y R(x, y))"></textarea></div><div id="operatorBar" class="operator-bar" aria-label="Insertar operadores"></div><div class="editor-hint"><span>Cuantificadores: usa paréntesis para delimitar el cuerpo.</span><kbd>Ctrl + Enter</kbd></div>
+          <div id="analysisError" class="inline-error" role="status" hidden></div><div class="environment"><div class="section-line"><h3>ENTORNO <span>l</span></h3><span id="freeCount" class="muted"></span></div><div id="environmentFields"></div></div>
+          <div class="evaluate-row"><p id="exampleDescription" class="hint"></p><button id="evaluateButton" class="primary"><span>▶</span> Evaluar fórmula</button></div>
+        </div></section>
+        <section class="panel result-panel" aria-label="Resultado y explicación"><div class="result-top"><div><span class="section-number">03</span><h2>Evaluación</h2></div><span id="runInfo" class="muted">LISTO PARA EJECUTAR</span></div>
+          <div id="resultBanner" class="result-banner" aria-live="polite"><span class="result-icon">⊨</span><div><p class="eyebrow">ESTADO DEL EVALUADOR</p><h3>Tu interpretación, bajo la lupa.</h3><p>Ejecuta la fórmula para ver su valor y las razones que lo determinan.</p></div></div>
+          <div class="tabs" role="tablist" aria-label="Vistas del análisis"><button role="tab" id="tab-trace" aria-controls="view-trace" aria-selected="true" data-tab="trace">Traza semántica</button><button role="tab" id="tab-ast" aria-controls="view-ast" aria-selected="false" tabindex="-1" data-tab="ast">Árbol sintáctico</button><button role="tab" id="tab-explore" aria-controls="view-explore" aria-selected="false" tabindex="-1" data-tab="explore">Explorar entornos</button></div>
+          <div id="view-trace" class="tab-content" role="tabpanel" aria-labelledby="tab-trace"><p class="empty-text">Cada paso conectará la fórmula con su interpretación.</p></div><div id="view-ast" class="tab-content" role="tabpanel" aria-labelledby="tab-ast" hidden></div><div id="view-explore" class="tab-content" role="tabpanel" aria-labelledby="tab-explore" hidden><p class="hint">Evalúa todas las asignaciones de las variables libres en esta interpretación.</p><button id="exploreButton" class="small-button">Explorar todos los entornos →</button><div id="exploreResults"></div></div>
+        </section>
+      </div>
+    </div>
+    <footer><span>SEMANTIC / LAB <span class="muted">· MM3032</span></span><span>ℐ ⊨<sub>l</sub> φ <span class="muted">/ La verdad depende de la interpretación.</span></span></footer>
+  </main>
+  <dialog id="helpDialog"><div class="dialog-heading"><p class="eyebrow">MANUAL DE CAMPO / 01</p><button id="closeHelp" class="quiet" aria-label="Cerrar guía">Cerrar ✕</button></div><h2>De los símbolos al significado.</h2><ol><li><strong>Define D.</strong> Escribe etiquetas separadas por comas. Después pulsa Aplicar.</li><li><strong>Declara el lenguaje.</strong> Añade nombres, tipos y aridades. Marca las tuplas de cada relación; asigna una salida a cada entrada de las funciones.</li><li><strong>Escribe la fórmula.</strong> Usa los botones o el teclado. Las constantes son funciones de aridad cero.</li><li><strong>Fija el entorno.</strong> Selecciona un valor de D para cada variable libre detectada.</li><li><strong>Evalúa y explora.</strong> Abre la traza para ver testigos, contraejemplos y las comprobaciones completas.</li></ol><h3>Sintaxis admitida</h3><p><code>¬ ∧ ∨ → ↔ ∀ ∃ = ≠</code></p><p>Alternativas de teclado: <code>! & | -> &lt;-> forall exists !=</code>. También <code>not and or</code>.</p><p>Precedencia de mayor a menor: negación y cuantificadores, ∧, ∨, →, ↔. La implicación se agrupa a la derecha. Los cuantificadores abarcan la siguiente fórmula unaria: escribe <code>∀x (P(x) → Q(x))</code> para incluir toda la implicación.</p><p>Los nombres distinguen mayúsculas y minúsculas. Una variable es un identificador no declarado usado como término. <code>R(x, y)</code> usa un predicado declarado; <code>f(x)</code> usa una función declarada.</p><h3>Reglas del proyecto</h3><p>El dominio y las interpretaciones de funciones y relaciones deben ser no vacíos. Toda función debe ser total. La igualdad compara elementos de D. Una entrada inválida nunca recibe Verdadero o Falso.</p><h3>Exploración y límites</h3><p>El explorador estudia solo la interpretación actual: no demuestra validez lógica en todas las interpretaciones. Admite hasta 256 entornos. Límites de trabajo: 20 elementos, aridad 6, 4096 tuplas por símbolo, 32 símbolos, 512 tokens y 12 000 pasos por evaluación. Si se exceden, se informa sin asignar verdad.</p><p>Exporta el caso a JSON para conservarlo. Al importar o cargar un ejemplo se reemplaza el caso actual. Los cambios de dominio conservan únicamente las tuplas y salidas que siguen perteneciendo a D.</p></dialog>
+</body>
+</html>

@@ -6,7 +6,7 @@ Evaluador semántico de lógica de primer orden sobre interpretaciones finitas, 
 
 1. Si recibiste el ZIP, extráelo completo.
 2. Abre `index.html` con Chrome, Edge o Firefox actualizado.
-3. La aplicación carga y evalúa el primer ejemplo. Cambia el caso en **Cargar un ejemplo** o configura tu propia interpretación.
+3. La aplicación abre **1. Interpretación** y prepara el primer ejemplo. Su resultado está disponible en **3. Evaluación**. Cambia el caso en **Cargar un ejemplo** o configura tu propia interpretación.
 
 No necesitas Python, Node.js, conexión a Internet, instalación de paquetes ni un servidor para usar la aplicación. Mantén `index.html`, `styles.css` y `src/` juntos. También se entrega `Semantic-Lab.html`, una versión autónoma que reúne la interfaz y el código en un solo archivo.
 
@@ -14,15 +14,17 @@ Los datos permanecen en memoria. **Exportar** descarga el caso completo a JSON; 
 
 ## Uso paso a paso
 
+La interfaz tiene tres pestañas independientes: **1. Interpretación**, **2. Fórmula** y **3. Evaluación**. Cambiar de pestaña conserva lo escrito y muestra solo las herramientas de ese apartado. Puedes navegar entre pestañas con las flechas del teclado, Inicio y Fin, además de hacer clic.
+
 1. **Dominio:** ingresa etiquetas separadas por comas y pulsa **Aplicar**. Por ejemplo, `1, 2, 3`. Los elementos se almacenan como etiquetas de texto, no como números con operaciones aritméticas implícitas.
 2. **Lenguaje:** declara el nombre, tipo y aridad de cada símbolo. Los nombres distinguen mayúsculas y minúsculas. Una función de aridad cero es una constante.
-3. **Interpretación:** abre la tarjeta de cada símbolo. Para un predicado, marca las tuplas incluidas en su relación; las demás no pertenecen a ella. Para una función, elige una salida para **cada** entrada de D^n. Las tablas grandes se paginan en grupos de 32 entradas.
+3. **Interpretación:** abre la tarjeta de cada símbolo. Para un predicado, marca las tuplas incluidas en su relación; las demás no pertenecen a ella. Para una función, elige una salida para **cada** entrada de D^n. Las tablas grandes se paginan en grupos de 32 entradas. Al lado se muestra la misma información en notación matemática, con conjuntos y tuplas: `D = { 1, 2, 3 }`, `Pℐ = { 1, 2 }`, `Rℐ = { (1, 3), (2, 1), (3, 2) }`. Las funciones se muestran como conjuntos de pares (entrada, salida), y las constantes como `cℐ = a`. Las etiquetas que contienen puntuación se escriben entre comillas para evitar ambigüedades.
 4. **Fórmula:** escribe con el teclado o inserta símbolos con los botones. Se admiten términos con funciones anidadas.
-5. **Entorno:** la aplicación detecta las variables libres y solicita sus valores. Las fórmulas cerradas no necesitan asignaciones.
-6. **Evaluación:** pulsa **Evaluar fórmula** o `Ctrl+Enter` dentro del editor. Abre los nodos de la traza para ver sus razones, interpretaciones de términos y asignaciones locales.
+5. **Entorno:** la aplicación detecta las variables libres y ofrece campos de texto libre. Puedes escribir cualquier contenido, sin desplegables ni filtrado automático. Al evaluar, cada valor debe coincidir exactamente con una etiqueta de D; los espacios cuentan. Un campo vacío significa que falta la asignación. Las fórmulas cerradas no necesitan asignaciones. Las salidas de funciones conservan sus selectores.
+6. **Evaluación:** pulsa **Evaluar fórmula** o `Ctrl+Enter` desde la pestaña Fórmula para abrir el resultado en **3. Evaluación**. Abre los nodos de la traza para ver sus razones, interpretaciones de términos y asignaciones locales. El **Árbol sintáctico** muestra la fórmula completa como raíz y conecta gráficamente sus subfórmulas y términos. Los conectivos binarios tienen ramas izquierda y derecha; los cuantificadores y la negación tienen una rama; las funciones y predicados tienen una por argumento. Puedes acercar, alejar, ajustar al ancho o recorrer el diagrama con las barras de desplazamiento.
 7. **Exploración:** en **Explorar entornos**, ejecuta todas las asignaciones libres posibles para esta interpretación. **Ver traza** carga una asignación concreta.
 
-Al modificar el caso, el resultado anterior se elimina para evitar mostrar una verdad desactualizada. Los cambios pendientes del dominio deben aplicarse antes de evaluar. Al cambiar D se conservan solo las tuplas y salidas que continúan en D; hay que completar las nuevas entradas funcionales. Para cambiar el nombre, tipo o aridad de un símbolo, elimínalo y vuelve a declararlo.
+Al modificar el caso, el resultado anterior se elimina para evitar mostrar una verdad desactualizada. Los cambios pendientes del dominio deben aplicarse antes de evaluar. Al cambiar D se conservan solo las tuplas y salidas funcionales que continúan en D; hay que completar las nuevas entradas funcionales. Los valores escritos en el entorno se conservan y se validan al evaluar, incluso después de cambiar D. Para cambiar el nombre, tipo o aridad de un símbolo, elimínalo y vuelve a declararlo.
 
 ## Sintaxis
 
@@ -73,8 +75,10 @@ semantic-lab/
     logic.js              Motor lógico independiente del navegador
     app.js                Formularios, eventos y representación visual
     examples.js           Seis casos de demostración
+    presentation.js       Notación matemática y distribución del árbol SVG
   examples/               Los mismos casos en archivos JSON importables
   tests/logic.test.cjs     Pruebas automatizadas del motor
+  tests/presentation.test.cjs  Notación, ramas y geometría del árbol
   tools/build.cjs          Generación reproducible del HTML autónomo
   README.md               Ejecución, sintaxis y arquitectura
   DEFENSA.md              Fundamentos, demostración y preguntas
@@ -93,6 +97,8 @@ En `logic.js` las responsabilidades están separadas en funciones:
 - `explore` enumera las asignaciones de las variables libres **en la interpretación actual** y evalúa cada una.
 
 `app.js` mantiene el caso actual, genera las tablas a partir del producto cartesiano, recoge el entorno y presenta los errores y resultados. Construye el contenido dinámico con `textContent`; los nombres del usuario no se insertan como HTML. La traza visual crea sus descendientes al desplegarlos para evitar generar miles de elementos de golpe.
+
+`presentation.js` contiene dos proyecciones puras: `notation` expresa el modelo mediante conjuntos y tuplas, y `layoutTree` asigna posiciones y dimensiones a los nodos del AST. Cada subárbol reserva un intervalo horizontal, lo que evita solapar hermanos; la altura máxima de cada nivel determina la posición de la fila siguiente. `app.js` dibuja esas cajas y sus conexiones en SVG, con zoom entre 25 % y 150 %. Estas funciones no modifican el modelo ni intervienen en el cálculo del valor de verdad.
 
 ### Gramática simplificada
 
@@ -145,12 +151,12 @@ node tools/build.cjs
 También puedes ejecutar las pruebas sin npm:
 
 ```bash
-node --test tests/logic.test.cjs
+node --test tests/logic.test.cjs tests/presentation.test.cjs
 ```
 
 No se necesita `npm install`. El generador escribe `Semantic-Lab.html` en la carpeta superior a `semantic-lab` y actualiza los JSON de `examples/`. Después de editar el código fuente, vuelve a generar el archivo autónomo para que refleje los cambios.
 
-La suite contiene 47 pruebas, incluyendo un contraste exhaustivo de 360 evaluaciones cuantificadas contra bucles JavaScript independientes en todas las combinaciones de una relación unaria no vacía y una relación binaria no vacía de un dominio de dos elementos. Consulta `VERIFICACION.md` para conocer lo que se comprobó y la limitación de la revisión gráfica en este entorno.
+La suite contiene 55 pruebas: las 47 originales del motor y ocho de notación, distribución del árbol y validación de valores libres. Incluye un contraste exhaustivo de 360 evaluaciones cuantificadas contra bucles JavaScript independientes en todas las combinaciones de una relación unaria no vacía y una relación binaria no vacía de un dominio de dos elementos. Consulta `VERIFICACION.md` para conocer lo que se comprobó y la limitación de la revisión gráfica en este entorno.
 
 ## Aportes creativos implementados
 

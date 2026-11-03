@@ -1,8 +1,8 @@
 {
   "name": "semantic-lab-mm3032",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Evaluador semántico de primer orden sobre interpretaciones finitas",
-  "scripts": { "test": "node --test tests/*.test.cjs", "build": "node tools/build.cjs" },
+  "scripts": { "test": "node --test tests/logic.test.cjs tests/presentation.test.cjs", "build": "node tools/build.cjs" },
   "engines": { "node": ">=18" }
 }

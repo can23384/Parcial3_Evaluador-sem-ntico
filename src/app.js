@@ -1,7 +1,7 @@
 /* Adaptador de interfaz: el motor lógico no depende del DOM. */
 (() => {
   'use strict';
-  const $ = id => document.getElementById(id), L = window.Logic;
+  const $ = id => document.getElementById(id), L = window.Logic, P = window.Presentation;
   const clone = value => JSON.parse(JSON.stringify(value));
   let state = clone(window.EXAMPLES[0]), result = null, pages = new Map();
   function el(tag, className, text) { const e = document.createElement(tag); if (className) e.className = className; if (text !== undefined) e.textContent = text; return e; }
@@ -19,7 +19,14 @@
     try { domainReady(); L.validateModel(state.model); $('modelStatus').textContent = 'Interpretación válida · funciones totales'; $('modelStatus').parentElement.classList.remove('invalid'); }
     catch (error) { $('modelStatus').textContent = error.message; $('modelStatus').parentElement.classList.add('invalid'); }
   }
-  function changed(reanalyze = true) { resetResult(); notice(''); modelStatus(); if (reanalyze) analyze(); }
+  function changed(reanalyze = true) { resetResult(); notice(''); modelStatus(); renderNotation(); if (reanalyze) analyze(); }
+  function renderNotation() {
+    const cards = P.notation(state.model).map(row => {
+      const card = el('section','notation-card'); card.append(el('h3','',row.title),el('pre','math-expression',row.expression));
+      if (row.note) card.append(el('p','hint',row.note)); return card;
+    });
+    $('mathNotation').replaceChildren(...cards);
+  }
   function selectDomain(value, onChange, label) {
     const select = el('select'); select.setAttribute('aria-label', label);
     const empty = el('option','','Seleccionar…'); empty.value = ''; select.append(empty);
@@ -73,10 +80,41 @@
     }
     drawTable(); body.append(tableWrap, footer); card.append(body); return card;
   }
-  function astNode(n) {
-    const names = { forall: '∀ / universal', exists: '∃ / existencial', and: '∧ / conjunción', or: '∨ / disyunción', not: '¬ / negación', implies: '→ / implicación', iff: '↔ / equivalencia', equal: '= / igualdad', unequal: '≠ / desigualdad', predicate: 'predicado', call: 'función / constante', var: 'variable' };
-    const node = el('div','ast-node'); node.append(el('span','',`${names[n.type]}${n.name ? ` · ${n.name}` : ''}${n.variable ? ` · ${n.variable}` : ''}`));
-    for (const child of [n.child, n.left, n.right, ...(n.args || [])]) if (child) node.append(astNode(child)); return node;
+  let treeViewport = null, treeScale = null;
+  function centerTree() {
+    if (treeViewport && !$('stage-evaluation').hidden && !$('view-ast').hidden) {
+      treeViewport.scrollLeft = Math.max(0, (treeViewport.scrollWidth - treeViewport.clientWidth) / 2);
+    }
+  }
+  function renderTree(ast) {
+    const layout = P.layoutTree(ast), svgNS = 'http://www.w3.org/2000/svg';
+    function svgElement(tag, attrs, text) {
+      const node = document.createElementNS(svgNS, tag);
+      for (const [name,value] of Object.entries(attrs)) node.setAttribute(name, String(value));
+      if (text !== undefined) node.textContent = text; return node;
+    }
+    const svg = svgElement('svg', { viewBox: `0 0 ${layout.width} ${layout.height}`, width: layout.width, height: layout.height, class: 'syntax-tree', role: 'img', 'aria-labelledby': 'syntax-tree-title syntax-tree-description' });
+    svg.append(svgElement('title',{id:'syntax-tree-title'},`Árbol sintáctico de ${L.format(ast)}`), svgElement('desc',{id:'syntax-tree-description'},'La fórmula completa ocupa la raíz. Cada conexión desciende a una subfórmula o término. Los operandos izquierdos aparecen a la izquierda y los derechos a la derecha.'));
+    for (const edge of layout.edges) svg.append(svgElement('path', { class: 'tree-edge', d: `M ${edge.x1} ${edge.y1} V ${edge.middle} H ${edge.x2} V ${edge.y2}`, fill:'none' }));
+    for (const node of layout.nodes) {
+      const group = svgElement('g',{class:`tree-node${node.depth === 0 ? ' tree-root' : ''}`, 'data-node-type':node.type});
+      group.append(svgElement('title',{},`${node.label}: ${node.formula}`));
+      group.append(svgElement('rect',{x:node.x-node.width/2,y:node.y,width:node.width,height:node.height,rx:9}));
+      group.append(svgElement('text',{x:node.x,y:node.y+23,'text-anchor':'middle',class:'tree-node-label'},`${node.depth === 0 ? 'RAÍZ · ' : ''}${node.label}`));
+      const text = svgElement('text',{x:node.x,'text-anchor':'middle',class:'tree-node-formula'});
+      node.lines.forEach((line,i) => text.append(svgElement('tspan',{x:node.x,y:node.y+47+i*19},line)));
+      group.append(text); svg.append(group);
+    }
+    treeViewport = el('div','tree-viewport'); treeViewport.tabIndex = 0; treeViewport.setAttribute('role','region'); treeViewport.setAttribute('aria-label','Diagrama del árbol; usa las barras de desplazamiento para recorrerlo'); treeViewport.append(svg);
+    const tools = el('div','tree-toolbar'), controls = el('div','tree-controls'), percent = el('span','tree-zoom','100%');
+    let scale = 1;
+    treeScale = value => { scale = Math.max(.25, Math.min(1.5,value)); svg.setAttribute('width',String(layout.width*scale)); svg.setAttribute('height',String(layout.height*scale)); percent.textContent = `${Math.round(scale*100)}%`; requestAnimationFrame(centerTree); };
+    const less = button('−',()=>treeScale(scale-.15)), more = button('+',()=>treeScale(scale+.15)); less.setAttribute('aria-label','Reducir árbol'); more.setAttribute('aria-label','Ampliar árbol');
+    controls.append(less,percent,more,button('Ajustar',()=>treeScale((treeViewport.clientWidth-8)/layout.width)),button('100%',()=>treeScale(1)));
+    tools.append(el('p','hint','De la raíz a sus componentes. Cada línea conecta un padre con su hijo.'),controls);
+    const note = el('p','hint ast-note','Fórmula principal: '); note.append(el('code','',L.format(ast)));
+    $('view-ast').replaceChildren(note, tools, treeViewport);
+    requestAnimationFrame(centerTree);
   }
   function analyze() {
     state.formula = $('formulaInput').value;
@@ -88,14 +126,18 @@
       state.environment = Object.fromEntries(free.filter(v => Object.hasOwn(state.environment, v)).map(v => [v, state.environment[v]]));
       const fields = free.map(v => {
         const label = el('label','',`${v} ↦`);
-        label.append(selectDomain(state.environment[v], value => { if (value) state.environment = { ...state.environment, [v]: value }; else delete state.environment[v]; changed(false); }, `Valor de la variable libre ${v}`)); return label;
+        const input = el('input'); input.type = 'text'; input.value = state.environment[v] ?? ''; input.placeholder = 'Escribe un valor'; input.autocomplete = 'off'; input.spellcheck = false;
+        input.setAttribute('aria-label',`Valor de la variable libre ${v}`); input.setAttribute('aria-describedby','environmentHint');
+        // No filtrar ni normalizar la escritura: el motor valida el valor exacto al evaluar.
+        input.addEventListener('input', () => { if (input.value !== '') state.environment = { ...state.environment, [v]: input.value }; else delete state.environment[v]; changed(false); });
+        label.append(input); return label;
       });
       $('environmentFields').replaceChildren(...(fields.length ? fields : [el('p','','Sin variables libres. La elección del entorno es irrelevante.')]));
-      const note = el('p','hint ast-note','Lectura sin ambigüedad: '); note.append(el('code','',L.format(ast)));
-      $('view-ast').replaceChildren(note, astNode(ast));
+      renderTree(ast);
       return ast;
     } catch (error) {
       $('analysisError').textContent = errorText(error); $('analysisError').hidden = false; $('formulaKind').textContent = 'REVISAR SINTAXIS'; $('freeCount').textContent = '—';
+      treeViewport = null; treeScale = null;
       $('environmentFields').replaceChildren(el('p','','Corrige la fórmula para identificar las variables libres.')); $('view-ast').replaceChildren(el('p','empty-text','No se puede construir el árbol hasta corregir la entrada.')); return null;
     }
   }
@@ -119,7 +161,7 @@
     text.append(el('p','eyebrow',kind === 'error' ? 'ENTRADA RECHAZADA / SIN VALOR DE VERDAD' : 'RESULTADO EN LA INTERPRETACIÓN ACTUAL'), el('h3','',title), el('p','',message));
     $('resultBanner').replaceChildren(el('span','result-icon',symbol), text);
   }
-  function run() {
+  function run({ reveal = false } = {}) {
     resetResult(); notice(''); state.formula = $('formulaInput').value;
     try {
       domainReady(); const start = performance.now(); result = L.evaluate(state.formula, state.model, state.environment);
@@ -130,12 +172,21 @@
     } catch (error) {
       banner('error','Revisa la entrada',errorText(error),'!'); $('runInfo').textContent = 'EVALUACIÓN DETENIDA';
       $('view-trace').replaceChildren(el('p','empty-text','No se produjo un resultado semántico. Corrige el error e intenta de nuevo.'));
-      if (Number.isInteger(error.position)) { $('formulaInput').focus(); $('formulaInput').setSelectionRange(error.position, error.position + 1); }
+      if (Number.isInteger(error.position)) $('formulaInput').setSelectionRange(error.position, error.position + 1);
     }
     modelStatus();
+    if (reveal) { selectStage('evaluation', true); selectTab('trace'); }
   }
   function selectTab(name) {
     for (const tab of document.querySelectorAll('[data-tab]')) { const active = tab.dataset.tab === name; tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1; $(`view-${tab.dataset.tab}`).hidden = !active; }
+    if (name === 'ast') requestAnimationFrame(centerTree);
+  }
+  function selectStage(name, focus = false) {
+    for (const tab of document.querySelectorAll('[data-stage]')) {
+      const active = tab.dataset.stage === name; tab.setAttribute('aria-selected',String(active)); tab.tabIndex = active ? 0 : -1; $(`stage-${tab.dataset.stage}`).hidden = !active;
+      if (active && focus) tab.focus();
+    }
+    if (name === 'evaluation') requestAnimationFrame(centerTree);
   }
   function loadExample(index) {
     state = clone(window.EXAMPLES[index]); pages.clear(); $('formulaInput').value = state.formula; $('exampleDescription').textContent = state.description; renderModel(); changed(); run();
@@ -152,7 +203,7 @@
         if (s.kind === 'predicate') s.tuples = s.tuples.filter(t => t.every(a => domain.includes(a)));
         else s.entries = s.entries.filter(e => e.args.every(a => domain.includes(a)) && domain.includes(e.value));
       }
-      state.environment = Object.fromEntries(Object.entries(state.environment).filter(([, a]) => domain.includes(a)));
+      // Conservar la entrada libre del usuario; una asignación fuera del nuevo D se rechaza al evaluar.
       pages.clear(); renderModel(); changed(); notice('Dominio actualizado. Revisa las tablas: las funciones deben cubrir todas las nuevas entradas y las relaciones deben conservar al menos una tupla.');
     } catch (error) { resetResult(); notice(errorText(error)); modelStatus(); }
   });
@@ -174,8 +225,20 @@
     b.addEventListener('mousedown', event => event.preventDefault()); $('operatorBar').append(b);
   }
   $('formulaInput').addEventListener('input', () => { $('exampleDescription').textContent = 'Caso personalizado · edita, evalúa y compara.'; changed(); });
-  $('formulaInput').addEventListener('keydown', event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); run(); } });
-  $('evaluateButton').addEventListener('click', run);
+  $('stage-formula').addEventListener('keydown', event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); run({reveal:true}); } });
+  $('evaluateButton').addEventListener('click', () => run({reveal:true}));
+  $('reevaluateButton').addEventListener('click', () => run({reveal:true}));
+  for (const link of document.querySelectorAll('[data-go-stage]')) link.addEventListener('click',()=>selectStage(link.dataset.goStage,true));
+  for (const tab of document.querySelectorAll('[data-stage]')) {
+    tab.addEventListener('click',()=>selectStage(tab.dataset.stage));
+    tab.addEventListener('keydown',event=>{
+      const tabs = [...document.querySelectorAll('[data-stage]')], i = tabs.indexOf(tab);
+      if (['ArrowRight','ArrowLeft','Home','End'].includes(event.key)) {
+        event.preventDefault(); const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length-1 : (i+(event.key === 'ArrowRight'?1:-1)+tabs.length)%tabs.length;
+        selectStage(tabs[index].dataset.stage,true);
+      }
+    });
+  }
   for (const tab of document.querySelectorAll('[data-tab]')) {
     tab.addEventListener('click', () => selectTab(tab.dataset.tab));
     tab.addEventListener('keydown', event => {
